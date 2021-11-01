@@ -1,4 +1,3 @@
-import logging
 import os
 
 from flask import Flask
@@ -8,18 +7,13 @@ import server_logic
 
 
 app = Flask(__name__)
+DEBUG = True
 
 
 @app.get("/")
 def handle_info():
-    """
-    This function is called when you register your Battlesnake on play.battlesnake.com
-    See https://docs.battlesnake.com/guides/getting-started#step-4-register-your-battlesnake
-    It controls your Battlesnake appearance and author permissions.
-    For customization options, see https://docs.battlesnake.com/references/personalization
-    TIP: If you open your Battlesnake URL in browser you should see this data.
-    """
-    print("INFO")
+    print("INFO request")
+
     return {
         "apiversion": "1",
         "author": "DVT",
@@ -37,7 +31,7 @@ def handle_start():
     """
     data = request.get_json()
 
-    print(f"{data['game']['id']} START")
+    print(f"NEW GAME START (id:{data['game']['id']})")
     return "ok"
 
 
@@ -57,19 +51,13 @@ def handle_move():
 
 @app.post("/end")
 def end():
-    """
-    This function is called when a game your snake was in ends.
-    It's purely for informational purposes, you don't have to make any decisions here.
-    """
     data = request.get_json()
 
-    print(f"{data['game']['id']} END")
+    print(f"GAME OVER (id:{data['game']['id']})")
     return "ok"
 
 
 if __name__ == "__main__":
-    logging.getLogger("werkzeug").setLevel(logging.ERROR)
-
-    print("Starting Battlesnake Server...")
+    print("Starting Battlesnake Server")
     port = int(os.environ.get("PORT", "8080"))
-    app.run(host="0.0.0.0", port=port, debug=True)
+    app.run(host="0.0.0.0", port=port, debug=DEBUG)

@@ -1,12 +1,6 @@
 import random
 from typing import List, Dict
 
-"""
-This file can be a nice home for your move logic, and to write helper functions.
-We have started this for you, with a function to help remove the 'neck' direction
-from the list of possible moves!
-"""
-
 
 def avoid_my_neck(my_head: Dict[str, int], my_body: List[dict], possible_moves: List[str]) -> List[str]:
     """
