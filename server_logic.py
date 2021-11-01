@@ -2,7 +2,7 @@ import random
 from typing import List, Dict
 
 
-def avoid_my_neck(my_head: Dict[str, int], my_body: List[dict], possible_moves: List[str]) -> List[str]:
+def avoid_body(my_head: Dict[str, int], my_body: List[dict], possible_moves: List[str]) -> List[str]:
     """
     my_head: Dictionary of x/y coordinates of the Battlesnake head.
             e.g. {"x": 0, "y": 0}
@@ -12,16 +12,27 @@ def avoid_my_neck(my_head: Dict[str, int], my_body: List[dict], possible_moves: 
             e.g. ["up", "down", "left", "right"]
     return: The list of remaining possible_moves, with the 'neck' direction removed
     """
-    my_neck = my_body[1]  # The segment of body right after the head is the 'neck'
+    for body_part in my_body[1:]:  # Exclude head from body
 
-    if my_neck["x"] < my_head["x"]:  # my neck is left of my head
-        possible_moves.remove("left")
-    elif my_neck["x"] > my_head["x"]:  # my neck is right of my head
-        possible_moves.remove("right")
-    elif my_neck["y"] < my_head["y"]:  # my neck is below my head
-        possible_moves.remove("down")
-    elif my_neck["y"] > my_head["y"]:  # my neck is above my head
-        possible_moves.remove("up")
+        # this body part is left of my head
+        if body_part["x"] < my_head["x"] and body_part["y"] == my_head["y"] and "left" in possible_moves:
+            print("Removed left")
+            possible_moves.remove("left")
+
+        # this body part is right of my head
+        elif body_part["x"] > my_head["x"] and body_part["y"] == my_head["y"] and "right" in possible_moves:
+            print("Removed right")
+            possible_moves.remove("right")
+
+        # this body part is below my head
+        elif body_part["y"] < my_head["y"] and body_part["x"] == my_head["x"] and "down" in possible_moves:
+            print("Removed down")
+            possible_moves.remove("down")
+
+        # this body part is above my head
+        elif body_part["y"] > my_head["y"] and body_part["x"] == my_head["x"] and "up" in possible_moves:
+            print("Removed up")
+            possible_moves.remove("up")
 
     return possible_moves
 
@@ -61,7 +72,7 @@ def choose_move(data: dict) -> str:
     possible_moves = ["up", "down", "left", "right"]
 
     # Don't allow your Battlesnake to move back in on it's own neck
-    possible_moves = avoid_my_neck(my_head, my_body, possible_moves)
+    possible_moves = avoid_body(my_head, my_body, possible_moves)
     possible_moves = avoid_walls(my_head, board, possible_moves)
 
     # TODO: Using information from 'data', find the edges of the board and don't let your Battlesnake move beyond them
