@@ -3,15 +3,6 @@ from typing import List, Dict
 
 
 def avoid_body(my_head: Dict[str, int], my_body: List[dict], possible_moves: List[str]) -> List[str]:
-    """
-    my_head: Dictionary of x/y coordinates of the Battlesnake head.
-            e.g. {"x": 0, "y": 0}
-    my_body: List of dictionaries of x/y coordinates for every segment of a Battlesnake.
-            e.g. [ {"x": 0, "y": 0}, {"x": 1, "y": 0}, {"x": 2, "y": 0} ]
-    possible_moves: List of strings. Moves to pick from.
-            e.g. ["up", "down", "left", "right"]
-    return: The list of remaining possible_moves, with the 'neck' direction removed
-    """
     for body_part in my_body[1:]:  # Exclude head from body
 
         # this body part is left of my head
@@ -39,12 +30,19 @@ def avoid_body(my_head: Dict[str, int], my_body: List[dict], possible_moves: Lis
 
 def avoid_walls(my_head: Dict[str, int], board: Dict[str, int], possible_moves: List[str]) -> List[str]:
     if my_head["x"] == (board["width"] - 1) and "right" in possible_moves:  # Wall is to the right of the head
+        print("Removed right")
         possible_moves.remove("right")
-    elif my_head["x"] == 0 and "left" in possible_moves:  # Wall is to the left of the head
+
+    if my_head["x"] == 0 and "left" in possible_moves:  # Wall is to the left of the head
+        print("Removed left")
         possible_moves.remove("left")
-    elif my_head["y"] == (board["height"] - 1) and "up" in possible_moves:  # Wall is above the head
+
+    if my_head["y"] == (board["height"] - 1) and "up" in possible_moves:  # Wall is above the head
+        print("Removed up")
         possible_moves.remove("up")
-    elif my_head["y"] == 0 and "down" in possible_moves:  # Wall is below the head
+
+    if my_head["y"] == 0 and "down" in possible_moves:  # Wall is below the head
+        print("Removed down")
         possible_moves.remove("down")
 
     return possible_moves
@@ -59,36 +57,20 @@ def choose_move(data: dict) -> str:
     with as a Python Dictionary, and contains all of the information about the Battlesnake board
     for each move of the game.
     """
-    my_head = data["you"]["head"]  # A dictionary of x/y coordinates like {"x": 0, "y": 0}
-    my_body = data["you"]["body"]  # A list of x/y coordinate dictionaries like [ {"x": 0, "y": 0}, {"x": 1, "y": 0}, {"x": 2, "y": 0} ]
+
+    my_head = data["you"]["head"]
+    my_body = data["you"]["body"]
     board = data["board"]
-
-    # TODO: uncomment the lines below so you can see what this data looks like in your output!
-    # print(f"~~~ Turn: {data['turn']}  Game Mode: {data['game']['ruleset']['name']} ~~~")
-    # print(f"All board data this turn: {data}")
-    # print(f"My Battlesnakes head this turn is: {my_head}")
-    # print(f"My Battlesnakes body this turn is: {my_body}")
-
     possible_moves = ["up", "down", "left", "right"]
 
-    # Don't allow your Battlesnake to move back in on it's own neck
+    print(f"HEAD x:{my_head['x']}, y:{my_head['y']}")
+
     possible_moves = avoid_body(my_head, my_body, possible_moves)
     possible_moves = avoid_walls(my_head, board, possible_moves)
 
-    # TODO: Using information from 'data', find the edges of the board and don't let your Battlesnake move beyond them
-    # board_height = ?
-    # board_width = ?
-
-    # TODO Using information from 'data', don't let your Battlesnake pick a move that would hit its own body
-
-    # TODO: Using information from 'data', don't let your Battlesnake pick a move that would collide with another Battlesnake
-
-    # TODO: Using information from 'data', make your Battlesnake move towards a piece of food on the board
-
-    # Choose a random direction from the remaining possible_moves to move in, and then return that move
     move = random.choice(possible_moves)
     # TODO: Explore new strategies for picking a move that are better than random
 
-    print(f"MOVE {data['turn']}: {move} picked from all valid options in {possible_moves}")
+    print(f"Turn #{data['turn']}: {move} picked from all valid options in {possible_moves}\n")
 
     return move
