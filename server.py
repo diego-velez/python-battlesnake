@@ -8,6 +8,7 @@ import server_logic
 
 app = Flask(__name__)
 DEBUG = True
+snake = None
 
 
 @app.get("/")
@@ -25,20 +26,23 @@ def handle_info():
 
 @app.post("/start")
 def handle_start():
-    """
-    This function is called everytime your snake is entered into a game.
-    request.json contains information about the game that's about to be played.
-    """
     data = request.get_json()
 
-    print(f"NEW GAME START (id:{data['game']['id']})")
+    print(f"\nNEW GAME START (id:{data['game']['id']})")
     return "ok"
 
 
 @app.post("/move")
 def handle_move():
+    global snake
+
     data = request.get_json()
-    move = server_logic.choose_move(data)
+
+    if snake is None:
+        snake = server_logic.Snake(data)
+
+    snake.set_data(data)
+    move = snake.choose_move()
     return {"move": move}
 
 
@@ -46,7 +50,7 @@ def handle_move():
 def end():
     data = request.get_json()
 
-    print(f"GAME OVER (id:{data['game']['id']})")
+    print(f"\nGAME OVER (id:{snake.game_id})")
     return "ok"
 
 

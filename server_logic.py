@@ -1,148 +1,168 @@
 import random
 from typing import List, Dict
 
-
-def print_function(func):
-    def inner(*args, **kwargs):
-        print(func.__name__)
-        return func(*args, **kwargs)
-    return inner
+LEFT = "left"
+RIGHT = "right"
+UP = "up"
+DOWN = "down"
 
 
-@print_function
-def avoid_body(my_head: Dict[str, int], my_body: List[Dict[str, int]], possible_moves: List[str]) -> List[str]:
-    for body_part in my_body[1:]:  # Exclude head from body
-        body_x = body_part["x"]
-        body_y = body_part["y"]
+class Snake:
+    possible_moves = [
+        LEFT, RIGHT,
+        DOWN, UP
+    ]
+    nearest_food = None
 
-        head_x = my_head["x"]
-        head_y = my_head["y"]
+    def __init__(self, data: dict):
+        self.set_data(data)
 
-        # This body part is left of my head
-        if body_x - head_x == -1 and body_y == head_y and "left" in possible_moves:
-            print("Removed left")
-            possible_moves.remove("left")
-
-        # This body part is right of my head
-        elif body_x - head_x == 1 and body_y == head_y and "right" in possible_moves:
+    def __avoid_walls(self):
+        if self.head_x == (self.width - 1) and RIGHT in self.possible_moves:  # Wall is to the right of the head
             print("Removed right")
-            possible_moves.remove("right")
+            self.possible_moves.remove(RIGHT)
 
-        # This body part is below my head
-        elif body_y - head_y == -1 and body_x == head_x and "down" in possible_moves:
-            print("Removed down")
-            possible_moves.remove("down")
+        if self.head_x == 0 and LEFT in self.possible_moves:  # Wall is to the left of the head
+            print("Removed left")
+            self.possible_moves.remove(LEFT)
 
-        # This body part is above my head
-        elif body_y - head_y == 1 and body_x == head_x and "up" in possible_moves:
+        if self.head_y == (self.height - 1) and UP in self.possible_moves:  # Wall is above the head
             print("Removed up")
-            possible_moves.remove("up")
+            self.possible_moves.remove(UP)
 
-    return possible_moves
+        if self.head_y == 0 and DOWN in self.possible_moves:  # Wall is below the head
+            print("Removed down")
+            self.possible_moves.remove(DOWN)
 
+    def __avoid_collision(self, collisions: List[Dict[str, int]]):
+        for collision in collisions:
+            collision_x = collision["x"]
+            collision_y = collision["y"]
 
-@print_function
-def avoid_walls(my_head: Dict[str, int], board: Dict[str, int], possible_moves: List[str]) -> List[str]:
-    if my_head["x"] == (board["width"] - 1) and "right" in possible_moves:  # Wall is to the right of the head
-        print("Removed right")
-        possible_moves.remove("right")
+            # This collision is left of my head
+            if collision_x - self.head_x == -1 and collision_y == self.head_y and LEFT in self.possible_moves:
+                print("Removed left")
+                self.possible_moves.remove(LEFT)
 
-    if my_head["x"] == 0 and "left" in possible_moves:  # Wall is to the left of the head
-        print("Removed left")
-        possible_moves.remove("left")
+            # This collision is right of my head
+            elif collision_x - self.head_x == 1 and collision_y == self.head_y and RIGHT in self.possible_moves:
+                print("Removed right")
+                self.possible_moves.remove(RIGHT)
 
-    if my_head["y"] == (board["height"] - 1) and "up" in possible_moves:  # Wall is above the head
-        print("Removed up")
-        possible_moves.remove("up")
+            # This collision is below my head
+            elif collision_y - self.head_y == -1 and collision_x == self.head_x and DOWN in self.possible_moves:
+                print("Removed down")
+                self.possible_moves.remove(DOWN)
 
-    if my_head["y"] == 0 and "down" in possible_moves:  # Wall is below the head
-        print("Removed down")
-        possible_moves.remove("down")
+            # This collision is above my head
+            elif collision_y - self.head_y == 1 and collision_x == self.head_x and UP in self.possible_moves:
+                print("Removed up")
+                self.possible_moves.remove(UP)
 
-    return possible_moves
+    def __calculate_nearest_food(self):
+        def calculate_tiles_to_food(this_food: Dict[str, int]) -> int:
+            tiles = 0
+            this_food_x = this_food["x"]
+            this_food_y = this_food["y"]
 
+            tiles += self.head_x - this_food_x if self.head_x > this_food_x else this_food_x - self.head_x
+            tiles += self.head_y - this_food_y if self.head_y > this_food_y else this_food_y - self.head_y
 
-@print_function
-def travel_to_food(my_head: Dict[str, int], food: Dict[str, int], possible_moves: List[str]) -> str:
-    # Food is to the right of the head
-    if my_head["x"] < food["x"] and "right" in possible_moves:
-        return "right"
+            return tiles
 
-    # Food is to the left of the head
-    elif my_head["x"] > food["x"] and "left" in possible_moves:
-        return "left"
+        self.nearest_food = self.all_food[0]
 
-    # Food is above the head
-    elif my_head["y"] < food["y"] and "up" in possible_moves:
-        return "up"
+        result_tiles = calculate_tiles_to_food(self.nearest_food)
 
-    # Food is below the head
-    elif my_head["y"] > food["y"] and "down" in possible_moves:
-        return "down"
+        for food in self.all_food[1:]:
+            if calculate_tiles_to_food(food) < result_tiles:
+                self.nearest_food = food
 
-    # Allah-akbar
-    else:
-        try:
-            return random.choice(possible_moves)
-        except IndexError:  # There are no valid moves left
-            print("Allah-akbar")
-            return "up"
+    def __travel_to_food(self) -> str:
+        def random_move():
+            try:
+                return random.choice(self.possible_moves)
+            except IndexError:
+                print("Allah-akbar")
+                return "up"
 
+        # There is no food so return whatever move is valid
+        if self.nearest_food is None:
+            return random_move()
 
-@print_function
-def calculate_nearest_food(my_head: Dict[str, int], all_food: List[Dict[str, int]]) -> Dict[str, int]:
-    def calculate_tiles_to_food(this_food: Dict[str, int]) -> int:
-        tiles = 0
-        this_food_x = this_food["x"]
-        this_food_y = this_food["y"]
+        # Food is to the right of the head
+        if self.head_x < self.nearest_food["x"] and RIGHT in self.possible_moves:
+            return RIGHT
 
-        tiles += head_x - this_food_x if head_x > this_food_x else this_food_x - head_x
-        tiles += head_y - this_food_y if head_y > this_food_y else this_food_y - head_y
+        # Food is to the left of the head
+        elif self.head_x > self.nearest_food["x"] and LEFT in self.possible_moves:
+            return LEFT
 
-        return tiles
+        # Food is above the head
+        elif self.head_y < self.nearest_food["y"] and UP in self.possible_moves:
+            return UP
 
-    result = all_food[0]
-    head_x = my_head["x"]
-    head_y = my_head["y"]
+        # Food is below the head
+        elif self.head_y > self.nearest_food["y"] and DOWN in self.possible_moves:
+            return DOWN
 
-    result_tiles = calculate_tiles_to_food(all_food[0])
+        # There are no valid moves left
+        else:
+            return random_move()
 
-    for food in all_food[1:]:
-        if calculate_tiles_to_food(food) < result_tiles:
-            result = food
+    def __set_game(self, game: dict):
+        self.game_id = game["id"]
+        self.gamemode = game["ruleset"]["name"]
+        self.gamemode_version = game["ruleset"]["version"]
+        self.max_latency = game["timeout"]
 
-    return result
+    def __set_you(self, you: dict):
+        self.snake_id = you["id"]
+        self.name = you["name"]
+        self.health = you["health"]
+        self.body = you["body"][1:]
+        self.latency = you["latency"]
+        self.head_x = you["head"]["x"]
+        self.head_y = you["head"]["y"]
+        self.length = you["length"]
+        self.shout = you["shout"]
+        self.squad = you["squad"]
 
+    def __set_board(self, board: dict):
+        self.height = board["height"]
+        self.width = board["width"]
+        self.all_food = board["food"]
+        self.hazards = board["hazards"]
+        self.enemies = board["snakes"][1:]  # Exclude myself
 
-@print_function
-def choose_move(data: dict) -> str:
-    """
-    data: Dictionary of all Game Board data as received from the Battlesnake Engine.
-    For a full example of 'data', see https://docs.battlesnake.com/references/api/sample-move-request
-    return: A String, the single move to make. One of "up", "down", "left" or "right".
-    Use the information in 'data' to decide your next move. The 'data' variable can be interacted
-    with as a Python Dictionary, and contains all of the information about the Battlesnake board
-    for each move of the game.
-    """
+    def set_data(self, data: dict):
+        self.__set_game(data["game"])
+        self.__set_you(data["you"])
+        self.turn = data["turn"]
+        self.__set_board(data["board"])
 
-    my_head = data["you"]["head"]
-    my_body = data["you"]["body"]
-    board = data["board"]
-    all_food = board["food"]
-    possible_moves = ["up", "down", "left", "right"]
+    def choose_move(self) -> str:
+        print(f"\nStarting turn #{self.turn}")
 
-    print(f"HEAD x:{my_head['x']}, y:{my_head['y']}")
+        self.__avoid_walls()
+        self.__avoid_collision(self.body)
+        self.__avoid_collision(self.enemies)
+        self.__avoid_collision(self.hazards)
 
-    possible_moves = avoid_body(my_head, my_body, possible_moves)
-    possible_moves = avoid_walls(my_head, board, possible_moves)
+        if len(self.all_food) > 0:
+            self.__calculate_nearest_food()
+            print(f"FOOD x:{self.nearest_food['x']}, y:{self.nearest_food['y']}")
+        else:
+            self.nearest_food = None
 
-    food = calculate_nearest_food(my_head, all_food)
+        # Pick a move based on where the scooby snack is
+        move = self.__travel_to_food()
 
-    print(f"FOOD x:{food['x']}, y:{food['y']}")
+        print(f"Chose {move} from {self.possible_moves}")
 
-    # Pick a move based on where the scooby snack is
-    move = travel_to_food(my_head, food, possible_moves)
+        self.possible_moves = [
+            LEFT, RIGHT,
+            DOWN, UP
+        ]
 
-    print(f"Turn #{data['turn']}: {move} picked from all valid options in {possible_moves}\n")
-
-    return move
+        return move
