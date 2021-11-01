@@ -27,13 +27,13 @@ def avoid_my_neck(my_head: Dict[str, int], my_body: List[dict], possible_moves: 
 
 
 def avoid_walls(my_head: Dict[str, int], board: Dict[str, int], possible_moves: List[str]) -> List[str]:
-    if my_head["x"] == board["width"] and "right" in possible_moves:  # Wall is to the right of the head
+    if my_head["x"] == (board["width"] - 1) and "right" in possible_moves:  # Wall is to the right of the head
         possible_moves.remove("right")
-    elif my_head["x"] == 1 and "left" in possible_moves:  # Wall is to the left of the head
+    elif my_head["x"] == 0 and "left" in possible_moves:  # Wall is to the left of the head
         possible_moves.remove("left")
-    elif my_head["y"] == board["height"] and "up" in possible_moves:  # Wall is above the head
+    elif my_head["y"] == (board["height"] - 1) and "up" in possible_moves:  # Wall is above the head
         possible_moves.remove("up")
-    elif my_head["y"] == 1 and "down" in possible_moves:  # Wall is below the head
+    elif my_head["y"] == 0 and "down" in possible_moves:  # Wall is below the head
         possible_moves.remove("down")
 
     return possible_moves
