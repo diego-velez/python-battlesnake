@@ -37,15 +37,8 @@ def handle_start():
 
 @app.post("/move")
 def handle_move():
-    """
-    This function is called on every turn of a game. It's how your snake decides where to move.
-    Valid moves are "up", "down", "left", or "right".
-    """
     data = request.get_json()
-
-    # TODO - look at the server_logic.py file to see how we decide what move to return!
     move = server_logic.choose_move(data)
-
     return {"move": move}
 
 
