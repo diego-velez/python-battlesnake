@@ -148,7 +148,6 @@ class Snake:
     def choose_move(self) -> str:
         print(f"\nStarting turn #{self.turn}")
         print(f"HEAD x:{self.head_x}, y:{self.head_y}")
-        print(self.gamemode)
 
         self.__avoid_all_obstacles()
 
