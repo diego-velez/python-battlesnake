@@ -17,7 +17,7 @@ def handle_info():
 
     return {
         "apiversion": "1",
-        "author": "DVT",
+        "author": "diego-velez",
         "color": "#FF00FF",
         "head": "beluga",
         "tail": "bolt",

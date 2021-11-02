@@ -59,6 +59,16 @@ class Snake:
                 print("Removed up")
                 self.possible_moves.remove(UP)
 
+    def __avoid_all_obstacles(self):
+        self.__avoid_walls()
+        self.__avoid_collision(self.body)
+
+        if self.gamemode != "solo":
+            for enemy in self.enemies:
+                self.__avoid_collision(enemy["body"])
+
+            self.__avoid_collision(self.hazards)
+
     def __calculate_nearest_food(self):
         def calculate_tiles_to_food(this_food: Dict[str, int]) -> int:
             tiles = 0
@@ -79,16 +89,10 @@ class Snake:
                 self.nearest_food = food
 
     def __travel_to_food(self) -> str:
-        def random_move():
-            try:
-                return random.choice(self.possible_moves)
-            except IndexError:
-                print("Allah-akbar")
-                return "up"
 
-        # There is no food so return whatever move is valid
-        if self.nearest_food is None:
-            return random_move()
+        # Death is inevitable
+        if len(self.possible_moves) == 0:
+            return UP
 
         # Food is to the right of the head
         if self.head_x < self.nearest_food["x"] and RIGHT in self.possible_moves:
@@ -106,9 +110,9 @@ class Snake:
         elif self.head_y > self.nearest_food["y"] and DOWN in self.possible_moves:
             return DOWN
 
-        # There are no valid moves left
+        # There is no clear way to the food
         else:
-            return random_move()
+            return random.choice(self.possible_moves)
 
     def __set_game(self, game: dict):
         self.game_id = game["id"]
@@ -143,20 +147,16 @@ class Snake:
 
     def choose_move(self) -> str:
         print(f"\nStarting turn #{self.turn}")
+        print(f"HEAD x:{self.head_x}, y:{self.head_y}")
+        print(self.gamemode)
 
-        self.__avoid_walls()
-        self.__avoid_collision(self.body)
-        self.__avoid_collision(self.enemies)
-        self.__avoid_collision(self.hazards)
+        self.__avoid_all_obstacles()
 
-        if len(self.all_food) > 0:
+        if self.gamemode in ["solo", "standard"]:
             self.__calculate_nearest_food()
-            print(f"FOOD x:{self.nearest_food['x']}, y:{self.nearest_food['y']}")
-        else:
-            self.nearest_food = None
+            move = self.__travel_to_food()
 
-        # Pick a move based on where the scooby snack is
-        move = self.__travel_to_food()
+            print(f"FOOD x:{self.nearest_food['x']}, y:{self.nearest_food['y']}")
 
         print(f"Chose {move} from {self.possible_moves}")
 
