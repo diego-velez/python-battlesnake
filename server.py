@@ -1,20 +1,15 @@
 import os
+import server_logic
 
 from flask import Flask
 from flask import request
 
-import server_logic
-
-
 app = Flask(__name__)
-DEBUG = True
 snake = None
 
 
 @app.get("/")
 def handle_info():
-    print("INFO request")
-
     return {
         "apiversion": "1",
         "author": "diego-velez",
@@ -26,9 +21,11 @@ def handle_info():
 
 @app.post("/start")
 def handle_start():
-    data = request.get_json()
+    global snake
 
-    print(f"\nNEW GAME START (id:{data['game']['id']})")
+    data = request.get_json()
+    snake = server_logic.Snake(data)
+
     return "ok"
 
 
@@ -37,24 +34,22 @@ def handle_move():
     global snake
 
     data = request.get_json()
-
-    if snake is None:
-        snake = server_logic.Snake(data)
-
     snake.set_data(data)
     move = snake.choose_move()
+
     return {"move": move}
 
 
 @app.post("/end")
 def end():
-    data = request.get_json()
+    global snake
 
-    print(f"\nGAME OVER (id:{snake.game_id})")
+    data = request.get_json()
+    snake.set_data(data)
+
     return "ok"
 
 
 if __name__ == "__main__":
-    print("Starting Battlesnake Server")
     port = int(os.environ.get("PORT", "8080"))
-    app.run(host="0.0.0.0", port=port, debug=DEBUG)
+    app.run(host="0.0.0.0", port=port)
