@@ -1,4 +1,5 @@
 import random
+import time
 from typing import List, Dict
 import logging
 from collections import namedtuple
@@ -61,6 +62,7 @@ class Snake:
         self.__set_board(data["board"])
 
     def __reset_moves(self):
+        logger.debug('Reset Moves')
         self.possible_moves = [
             LEFT, RIGHT,
             DOWN, UP
@@ -171,6 +173,8 @@ class Snake:
         logger.info(f"Starting turn #{self.turn}")
         logger.debug(f"Head is at {self.head}")
 
+        start_time = time.time()
+
         self.__avoid_all_obstacles()
 
         if self.gamemode in ["solo", "standard"]:
@@ -179,8 +183,8 @@ class Snake:
 
             logger.debug(f"Nearest food is at {self.nearest_food}")
 
-        logger.info(f"Chose {move} from {self.possible_moves}\n")
-
+        logger.info(f"Chose {move} from {self.possible_moves}")
         self.__reset_moves()
+        logger.info(f'Took {round((time.time() - start_time) * 1000, 3)} milliseconds to complete\n')
 
         return move
