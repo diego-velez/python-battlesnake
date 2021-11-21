@@ -2,7 +2,8 @@ import logging
 import random
 import time
 from collections import namedtuple
-from typing import List, Dict
+from typing import List
+import datetime
 
 LEFT = "left"
 RIGHT = "right"
@@ -26,7 +27,7 @@ class Snake:
     def __init__(self, data: dict):
         self.set_data(data)
 
-        file_handler = logging.FileHandler(f'Game (id={self.game_id}).log')
+        file_handler = logging.FileHandler(f'{datetime.datetime.now()}: {self.gamemode} game.log')
         file_handler.setFormatter(formatter)
         logger.addHandler(file_handler)
 
@@ -295,7 +296,7 @@ class Snake:
         except IndexError:
             self.all_moves = [UP]
 
-    def choose_move(self) -> str:
+    def __choose_move(self) -> str:
         logger.info(f"Starting turn #{self.turn}")
         logger.debug(f"Head is at {self.head}")
 
@@ -319,5 +320,14 @@ class Snake:
         logger.info(f"Chose {move} ({len(self.all_moves)} moves left)")
         self.__reset_moves()  # Must reset moves to have all moves available next turn
         logger.info(f'Took {round((time.time() - start_time) * 1000, 3)} milliseconds to complete\n')
+
+        return move
+
+    def choose_move(self) -> str:
+        try:
+            move = self.__choose_move()
+        except:
+            logger.exception('Unexpected Crash')
+            move = UP
 
         return move
