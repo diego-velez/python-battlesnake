@@ -68,12 +68,11 @@ class Snake:
         # Make coordinate dictionary items into COORDINATE objects
         self.all_food = self.__change_dicts_to_coordinates(board["food"])
         self.hazards = self.__change_dicts_to_coordinates(board["hazards"])
-        self.enemies = list()
+        self.enemies = board["snakes"][1:]  # Exclude myself
 
-        for enemy in board["snakes"][1:]:  # Exclude myself
+        for index, enemy in enumerate(self.enemies):
             enemy_body = [Coordinate(**body_part) for body_part in enemy['body']]
-            enemy['body'] = enemy_body
-            self.enemies.append(enemy)
+            self.enemies[index]['body'] = enemy_body.copy()
 
     """
         Takes a list of dictionaries of coordinates
