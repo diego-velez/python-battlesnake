@@ -2,18 +2,24 @@ import logging
 import random
 import time
 from collections import namedtuple
-from typing import List
+from typing import List, Dict
 import datetime
 
 LEFT = "left"
 RIGHT = "right"
 UP = "up"
 DOWN = "down"
-COORDINATE = namedtuple('coordinate', ('x', 'y'))
+DEBUG = False  # Change to True if you want to log all debug logs to the log file
+
+Coordinate = namedtuple('coordinate', ('x', 'y'))
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
 formatter = logging.Formatter('%(levelname)s:%(funcName)s:%(message)s')
+
+if DEBUG:
+    logger.setLevel(logging.DEBUG)
+else:
+    logger.setLevel(logging.INFO)
 
 
 class Snake:
@@ -27,7 +33,9 @@ class Snake:
     def __init__(self, data: dict):
         self.set_data(data)
 
-        file_handler = logging.FileHandler(f'{datetime.datetime.now()}: {self.gamemode} game.log')
+        # Finish setting up logging
+        file_name = f'{datetime.datetime.now()}: {self.gamemode} game.log'
+        file_handler = logging.FileHandler(file_name)
         file_handler.setFormatter(formatter)
         logger.addHandler(file_handler)
 
@@ -43,9 +51,12 @@ class Snake:
         self.snake_id = you["id"]
         self.name = you["name"]
         self.health = you["health"]
-        self.body = [COORDINATE(**part) for part in you["body"][1:]]
+
+        # Make coordinate dictionary items into COORDINATE objects
+        self.body = self.__change_dicts_to_coordinates(you["body"][1:])
+        self.head = Coordinate(**you["head"])
+
         self.latency = you["latency"]
-        self.head = COORDINATE(**you["head"])
         self.length = you["length"]
         self.shout = you["shout"]
         self.squad = you["squad"]
@@ -53,9 +64,31 @@ class Snake:
     def __set_board(self, board: dict):
         self.height = board["height"]
         self.width = board["width"]
-        self.all_food = board["food"]
-        self.hazards = [COORDINATE(**hazard) for hazard in board["hazards"]]
-        self.enemies = board["snakes"][1:]  # Exclude myself
+
+        # Make coordinate dictionary items into COORDINATE objects
+        self.all_food = self.__change_dicts_to_coordinates(board["food"])
+        self.hazards = self.__change_dicts_to_coordinates(board["hazards"])
+        self.enemies = list()
+
+        for enemy in board["snakes"][1:]:  # Exclude myself
+            enemy_body = [Coordinate(**body_part) for body_part in enemy['body']]
+            enemy['body'] = enemy_body
+            self.enemies.append(enemy)
+
+    """
+        Takes a list of dictionaries of coordinates
+        
+            E.g. [
+                {'x': 0, 'y': 0},
+                {'x': 1, 'y': 0},
+                {'x': 2, 'y': 0},
+            ]
+        
+        Returns a list of COORDINATE objects
+    """
+    @staticmethod
+    def __change_dicts_to_coordinates(ls: List[Dict[str, int]]):
+        return [Coordinate(**dictionary_coordinate) for dictionary_coordinate in ls]
 
     """
         Must be called before calling choose_move, in order to choose a move based on the current board
@@ -76,28 +109,28 @@ class Snake:
             DOWN, UP
         ]
 
-    def __avoid_walls(self, simulated_head: COORDINATE):
+    def __avoid_walls(self, simulated_head: Coordinate):
         # Wall is to the right of my head
-        if simulated_head.x == (self.width - 1) and RIGHT in self.possible_moves:  # Wall is to the right of the head
+        if simulated_head.x == (self.width - 1) and RIGHT in self.possible_moves:
             logger.debug("Removed right")
             self.possible_moves.remove(RIGHT)
 
         # Wall is to the left of my head
-        if simulated_head.x == 0 and LEFT in self.possible_moves:  # Wall is to the left of the head
+        if simulated_head.x == 0 and LEFT in self.possible_moves:
             logger.debug("Removed left")
             self.possible_moves.remove(LEFT)
 
         # Wall is above my head
-        if simulated_head.y == (self.height - 1) and UP in self.possible_moves:  # Wall is above the head
+        if simulated_head.y == (self.height - 1) and UP in self.possible_moves:
             logger.debug("Removed up")
             self.possible_moves.remove(UP)
 
         # Wall is below my head
-        if simulated_head.y == 0 and DOWN in self.possible_moves:  # Wall is below the head
+        if simulated_head.y == 0 and DOWN in self.possible_moves:
             logger.debug("Removed down")
             self.possible_moves.remove(DOWN)
 
-    def __avoid_collision(self, simulated_head: COORDINATE, collisions: List[COORDINATE]):
+    def __avoid_collision(self, simulated_head: Coordinate, collisions: List[Coordinate]):
         for collision in collisions:
             # This collision is to the left of my head
             if collision.x - simulated_head.x == -1 and collision.y == simulated_head.y and LEFT in self.possible_moves:
@@ -119,7 +152,7 @@ class Snake:
                 logger.debug("Removed up")
                 self.possible_moves.remove(UP)
 
-    def __avoid_all_obstacles(self, simulated_head: COORDINATE = None, simulated_body: List[COORDINATE] = None):
+    def __avoid_all_obstacles(self, simulated_head: Coordinate = None, simulated_body: List[Coordinate] = None):
         if simulated_head is None:
             simulated_head = self.head
         if simulated_body is None:
@@ -133,8 +166,7 @@ class Snake:
         # Avoid enemies if there are any
         if len(self.enemies) > 0:
             for enemy in self.enemies:
-                enemy_body = [COORDINATE(**body_part) for body_part in enemy['body']]
-                self.__avoid_collision(simulated_head, enemy_body)
+                self.__avoid_collision(simulated_head, enemy['body'])
 
         # Avoid hazards if there are any
         if len(self.hazards) > 0:
@@ -156,14 +188,14 @@ class Snake:
             while simulated_head != food:
                 self.__reset_moves()
                 self.__avoid_all_obstacles(simulated_head, simulated_body)
-                move = travel_to_food(all_moves_to_food, simulated_head)
+                next_move = travel_to_food(all_moves_to_food, simulated_head)
 
                 # Could not calculate path to food
-                if move is None:
-                    return move
+                if next_move is None:
+                    return next_move
 
-                all_moves_to_food.append(move)
-                simulated_head = head_coord_based_on_move(move, simulated_head)
+                all_moves_to_food.append(next_move)
+                simulated_head = head_coord_based_on_move(next_move, simulated_head)
                 simulated_body = advance_body(simulated_head, simulated_body)
 
             return all_moves_to_food
@@ -172,7 +204,7 @@ class Snake:
             Chooses the next move of the head based on the position of the food and the moves the head can make
             without killing itself
         """
-        def travel_to_food(all_moves: List[str], head: COORDINATE) -> str or None:
+        def travel_to_food(all_moves: List[str], head: Coordinate) -> str or None:
 
             """
                 Returns the opposite move of the move passed
@@ -231,20 +263,20 @@ class Snake:
         """
             Returns the next coordinates of the head based on the move chosen
         """
-        def head_coord_based_on_move(move: str, simulated_head: COORDINATE) -> COORDINATE:
+        def head_coord_based_on_move(move: str, simulated_head: Coordinate) -> Coordinate:
             if move == UP:
-                return COORDINATE(simulated_head.x, simulated_head.y + 1)
+                return Coordinate(simulated_head.x, simulated_head.y + 1)
             elif move == DOWN:
-                return COORDINATE(simulated_head.x, simulated_head.y - 1)
+                return Coordinate(simulated_head.x, simulated_head.y - 1)
             elif move == LEFT:
-                return COORDINATE(simulated_head.x - 1, simulated_head.y)
+                return Coordinate(simulated_head.x - 1, simulated_head.y)
             elif move == RIGHT:
-                return COORDINATE(simulated_head.x + 1, simulated_head.y)
+                return Coordinate(simulated_head.x + 1, simulated_head.y)
 
         """
             Returns a list of the coordinates of the body of the snake in the next turn
         """
-        def advance_body(head: COORDINATE, body: List[COORDINATE]) -> List[COORDINATE]:
+        def advance_body(head: Coordinate, body: List[Coordinate]) -> List[Coordinate]:
             return [
                 head if index == 0 else body[index - 1]
                 for index in range(len(body))
@@ -254,7 +286,6 @@ class Snake:
         for food in self.all_food:
             logger.debug(f'Calculating tiles to food at {food}')
 
-            food = COORDINATE(**food)
             moves = calculate_tiles_to_food()
 
             # Skip food since a path to it could not be calculated
