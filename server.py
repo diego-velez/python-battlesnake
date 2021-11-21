@@ -1,11 +1,12 @@
 import os
-import server_logic
 
 from flask import Flask
 from flask import request
 
+from snake import Snake
+
 app = Flask(__name__)
-snake = None
+snake: Snake = None
 
 
 @app.get("/")
@@ -24,7 +25,7 @@ def handle_start():
     global snake
 
     data = request.get_json()
-    snake = server_logic.Snake(data)
+    snake = Snake(data)
 
     return "ok"
 
