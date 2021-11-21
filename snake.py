@@ -42,9 +42,9 @@ class Snake:
         self.snake_id = you["id"]
         self.name = you["name"]
         self.health = you["health"]
-        self.body = you["body"][1:]
+        self.body = [COORDINATE(**part) for part in you["body"][1:]]
         self.latency = you["latency"]
-        self.head = COORDINATE(you["head"]["x"], you["head"]["y"])
+        self.head = COORDINATE(**you["head"])
         self.length = you["length"]
         self.shout = you["shout"]
         self.squad = you["squad"]
@@ -53,7 +53,7 @@ class Snake:
         self.height = board["height"]
         self.width = board["width"]
         self.all_food = board["food"]
-        self.hazards = board["hazards"]
+        self.hazards = [COORDINATE(**hazard) for hazard in board["hazards"]]
         self.enemies = board["snakes"][1:]  # Exclude myself
 
     """
@@ -96,11 +96,8 @@ class Snake:
             logger.debug("Removed down")
             self.possible_moves.remove(DOWN)
 
-    def __avoid_collision(self, simulated_head: COORDINATE, collisions: List[Dict[str, int]]):
+    def __avoid_collision(self, simulated_head: COORDINATE, collisions: List[COORDINATE]):
         for collision in collisions:
-            # Every collision is/should be a two item dictionary with a key of 'x' and another of 'y'
-            collision = COORDINATE(**collision)
-
             # This collision is to the left of my head
             if collision.x - simulated_head.x == -1 and collision.y == simulated_head.y and LEFT in self.possible_moves:
                 logger.debug("Removed left")
@@ -121,19 +118,22 @@ class Snake:
                 logger.debug("Removed up")
                 self.possible_moves.remove(UP)
 
-    def __avoid_all_obstacles(self, simulated_head: COORDINATE = None):
+    def __avoid_all_obstacles(self, simulated_head: COORDINATE = None, simulated_body: List[COORDINATE] = None):
         if simulated_head is None:
             simulated_head = self.head
+        if simulated_body is None:
+            simulated_body = self.body
 
         self.__avoid_walls(simulated_head)
 
         # Make sure head does not collide with its own body
-        self.__avoid_collision(simulated_head, self.body)
+        self.__avoid_collision(simulated_head, simulated_body)
 
         # Avoid enemies if there are any
         if len(self.enemies) > 0:
             for enemy in self.enemies:
-                self.__avoid_collision(simulated_head, enemy["body"])
+                enemy_body = [COORDINATE(**body_part) for body_part in enemy['body']]
+                self.__avoid_collision(simulated_head, enemy_body)
 
         # Avoid hazards if there are any
         if len(self.hazards) > 0:
@@ -149,11 +149,12 @@ class Snake:
         def calculate_tiles_to_food() -> List[str] or None:
             all_moves_to_food = list()
             simulated_head = self.head  # Keep track of where the head will be based on all the moves
+            simulated_body = advance_body(simulated_head, self.body)
 
             # Runs loop until the head reaches the food
             while simulated_head != food:
                 self.__reset_moves()
-                self.__avoid_all_obstacles(simulated_head)
+                self.__avoid_all_obstacles(simulated_head, simulated_body)
                 move = travel_to_food(all_moves_to_food, simulated_head)
 
                 # Could not calculate path to food
@@ -162,6 +163,7 @@ class Snake:
 
                 all_moves_to_food.append(move)
                 simulated_head = head_coord_based_on_move(move, simulated_head)
+                simulated_body = advance_body(simulated_head, simulated_body)
 
             return all_moves_to_food
 
@@ -169,7 +171,7 @@ class Snake:
             Chooses the next move of the head based on the position of the food and the moves the head can make
             without killing itself
         """
-        def travel_to_food(all_moves: List[str], head: COORDINATE = self.head) -> str or None:
+        def travel_to_food(all_moves: List[str], head: COORDINATE) -> str or None:
 
             """
                 Returns the opposite move of the move passed
@@ -237,6 +239,15 @@ class Snake:
                 return COORDINATE(simulated_head.x - 1, simulated_head.y)
             elif move == RIGHT:
                 return COORDINATE(simulated_head.x + 1, simulated_head.y)
+
+        """
+            Returns a list of the coordinates of the body of the snake in the next turn
+        """
+        def advance_body(head: COORDINATE, body: List[COORDINATE]) -> List[COORDINATE]:
+            return [
+                head if index == 0 else body[index - 1]
+                for index in range(len(body))
+            ]
 
         shortest_distance_to_food = None
         for food in self.all_food:
